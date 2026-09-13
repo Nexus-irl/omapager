@@ -307,7 +307,7 @@ Set `OMARCHY_SHELL_DIR` if the shell is installed somewhere other than
 
 Use the installed `qs.Ui` kit rather than copying first-party component code.
 `Toast` composes `BorderSurface`, `Button` and `TextField`; the panel uses the real
-`PanelHero`, `CursorSurface`, `Dropdown`, `NumberField` and `ToggleSwitch`.
+`PanelHero`, `CursorSurface`, `Dropdown` and `ToggleSwitch`.
 Card borders come from `Border.surfaceSpec("notifications", ...)`, including
 gradient and per-side widths. Content geometry includes those insets.
 The canvas follows the stock scaled 380px notification width. `edgeSpacing`
@@ -324,6 +324,11 @@ The stock card's headline/body use Liberation Sans at `Style.font.title`;
 controls, glyphs and metadata follow `Style.font.family`. Theme roles determine
 colours, padding and corners. Do not reintroduce minimum rounding, hand-tinted
 control states or extra card shadows.
+
+README media uses the curated `bin/omapager-demo` scenes: retain their names,
+message text and recognisable source icons. Warm or provision the public icons
+before recording and inspect them in the rendered cards. Generic test fixtures
+and letter-tile loading states are not substitutes for the demo presentation.
 
 Intentional differences are the deck/grouping behavior, sender fallback mark,
 bounded 2→8-line body disclosure, action marks, More overflow, opt-in countdown
