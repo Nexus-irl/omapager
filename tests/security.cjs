@@ -94,6 +94,7 @@ const capacitySource = [
   extract(source, 'function rememberRecent(row)', '// ------------------------------------------------------- what was held'),
   extract(source, 'function durationFor(urgency, requested)', '// ------------------------------------------------------------- snooze'),
   extract(source, 'function liveCount()', '// ------------------------------------------------------------- icons'),
+  extract(source, 'function wantSenderImage(row)', '\n  Process {'),
   extract(source, 'function nextKey()', '// ------------------------------------------------------------- arrival'),
   extract(source, 'function handleNotification(notification)', '// Qt.callLater: mutating the model'),
   extract(source, 'function showRow(row)', "// Let go of the sender's object"),
@@ -117,6 +118,7 @@ function newCapacityScope() {
     maxLiveNotifications: 100, heights: {}, leaving: {}, layoutRevision: 0,
     replyingKey: '', held: [], doNotDisturb: false, globalSnoozeUntil: 0,
     recentRows: [], recentLimit: 20,
+    senderImageQueue: [], senderImageRevision: 0, helperSettingsReady: false,
     configuredDisplayName: 'fixture-display', deckDisplayName: '',
     snoozeRevision: 0, snoozes: {},
     codesBypassQuiet: false, hideSettingsAction: false,
@@ -173,6 +175,29 @@ function newCapacityScope() {
     return n;
   };
   return s;
+}
+
+{ // A late decode cannot overwrite a replacement, even if it reuses the path.
+  const s = newCapacityScope();
+  const n = s.fakeNotification(1, 'First icon');
+  n.image = 'image://icon//tmp/site-icon.png';
+  s.handleNotification(n);
+  s.drainCallLater();
+  const key = s.keyForOriginal(1), first = s.liveKeys[key].senderImage;
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  n.replace({ summary: 'Replacement icon' });
+  s.drainCallLater();
+  const replacement = s.liveKeys[key].senderImage;
+  s.finishSenderImage(first, png);
+  assert.equal(s.senderImageFor(key, n.image), '');
+  s.finishSenderImage(replacement, png);
+  assert.equal(s.senderImageFor(key, n.image), png);
+  n.replace({ image: '' });
+  s.drainCallLater();
+  assert.equal(s.senderImageFor(key, ''), '');
+  s.finishClose(key, 'dismissed');
+  s.finishSenderImage(replacement, png);
+  assert.equal(s.senderImageFor(key, n.image), '');
 }
 
 { // Expired notifications remain readable, newest first, without unbounded retention.

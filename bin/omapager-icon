@@ -10,6 +10,7 @@
 # then the site itself - which is the one step that touches the network, and so
 # the one step that has to be asked for.
 import argparse
+import base64
 import glob
 import hashlib
 import io
@@ -54,6 +55,7 @@ MAX_ICON_REQUESTS = 6
 MAX_REMOTE_SIDE = 2048
 MAX_REMOTE_PIXELS = MAX_REMOTE_SIDE * MAX_REMOTE_SIDE
 REMOTE_FORMATS = ("PNG", "JPEG", "WEBP", "ICO")
+SENDER_IMAGE_DATA_URL_CHARS = 131072
 
 
 def is_mono_glyph(im, opaque):
@@ -374,6 +376,19 @@ def normalised_remote_png(data):
         image.close()
 
 
+def sender_image_data_url(stream):
+    """Decode one bounded image stream without persisting or naming its source."""
+    data = stream.read(REMOTE_ICON_BYTES + 1)
+    if len(data) > REMOTE_ICON_BYTES:
+        raise ValueError("oversized image")
+    png = normalised_remote_png(data)
+    encoded = base64.b64encode(png).decode("ascii")
+    result = "data:image/png;base64," + encoded
+    if len(result) > SENDER_IMAGE_DATA_URL_CHARS:
+        raise ValueError("encoded image too large")
+    return result
+
+
 def fetch_site(host, scheme):
     """Fetch one site's own HTTPS metadata and icon when the caller allows it."""
     host = public_hostname(host)
@@ -567,7 +582,8 @@ def resolve(args):
     return None, "none"
 
 
-def main():
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser()
     ap.add_argument("--key", default="")
     ap.add_argument("--app", default="")
@@ -576,7 +592,17 @@ def main():
     ap.add_argument("--scheme", default="dark", choices=["dark", "light"])
     ap.add_argument("--fetch", action="store_true")
     ap.add_argument("--why", action="store_true", help="print where it came from")
-    args = ap.parse_args()
+    ap.add_argument("--sender-image", action="store_true")
+    args = ap.parse_args(argv)
+    if args.sender_image:
+        if argv != ["--sender-image"]:
+            return 2
+        try:
+            result = sender_image_data_url(sys.stdin.buffer)
+        except Exception:
+            return 1
+        sys.stdout.write(result)
+        return 0
     for field in ("key", "app", "app_icon", "source"):
         if len(getattr(args, field)) > 256: return 2
     private_dir(CACHE)

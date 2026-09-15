@@ -686,6 +686,80 @@ Item {
     }
   }
 
+  // Sender files are decoded outside the shell. Jobs belong to a particular
+  // snapshot, not a source group: a replacement must not inherit a late image.
+  property var senderImageQueue: []
+  property int senderImageRevision: 0
+
+  function wantSenderImage(row) {
+    var reservation = liveKeys[row.key]
+    if (!reservation) return
+    var source = String(row.image || "")
+    var job = source.indexOf("image://icon//") === 0
+            ? { key: row.key, source: source, image: "" } : null
+    if (!job && !reservation.senderImage) return
+    reservation.senderImage = job
+    senderImageRevision += 1
+    senderImageQueue = senderImageQueue.filter(function(pending) {
+      return liveKeys[pending.key] && liveKeys[pending.key].senderImage === pending
+    })
+    if (job && senderImageQueue.length < maxLiveNotifications) senderImageQueue.push(job)
+    pumpSenderImages()
+  }
+
+  function senderImageFor(key, source, revision) {
+    var job = liveKeys[key] && liveKeys[key].senderImage
+    return job && job.source === source ? job.image : ""
+  }
+
+  function finishSenderImage(job, image) {
+    if (!job || !liveKeys[job.key] || liveKeys[job.key].senderImage !== job) return
+    if (image.length > 131072 || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(image)) return
+    job.image = image
+    senderImageRevision += 1
+  }
+
+  function pumpSenderImages() {
+    if (!helperSettingsReady || senderImageProc.running) return
+    while (senderImageQueue.length) {
+      var job = senderImageQueue.shift()
+      if (!liveKeys[job.key] || liveKeys[job.key].senderImage !== job) continue
+      senderImageProc.job = job
+      senderImageProc.output = ""
+      senderImageProc.overflow = false
+      senderImageProc.stdinEnabled = true
+      senderImageProc.running = true
+      senderImageProc.write(job.source.substring("image://icon/".length))
+      senderImageProc.stdinEnabled = false
+      return
+    }
+  }
+
+  Process {
+    id: senderImageProc
+    environment: service.helperEnvironment
+    command: [service.iconBin, "--sender-image"]
+    property var job: null
+    property string output: ""
+    property bool overflow: false
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(chunk) {
+        if (senderImageProc.overflow) return
+        if (senderImageProc.output.length + chunk.length > 131072) {
+          senderImageProc.overflow = true
+          senderImageProc.output = ""
+        } else senderImageProc.output += chunk
+      }
+    }
+    onExited: function(code, status) {
+      if (code === 0 && !overflow) service.finishSenderImage(job, output)
+      job = null
+      output = ""
+      Qt.callLater(service.pumpSenderImages)
+    }
+  }
+
   // A single clock the cards' relative times hang off. Per-card timers would
   // be a dozen wakeups a minute to move the word "now" to "1m".
   property double nowTick: Date.now()
@@ -1000,6 +1074,7 @@ Item {
     }
 
     Store.write(storeProc, storeBin, "put", row)
+    wantSenderImage(row)
     wantIcon(row)
     lookForReply(row)
 
@@ -1756,6 +1831,7 @@ Item {
     tidyProc.running = true
     Store._pump(storeProc)
     pumpIcons()
+    pumpSenderImages()
     pumpReplies()
   })
 
@@ -2178,6 +2254,7 @@ Item {
             id: toast
             required property var model
             row: model
+            senderImage: service.senderImageFor(model.key, model.image, service.senderImageRevision)
             scene: service
             cardWidth: deck.width
             place: service.placements[model.key]

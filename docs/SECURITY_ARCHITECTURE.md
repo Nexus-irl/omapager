@@ -103,6 +103,15 @@ running as the same user can race those files, so this is not isolation from a
 hostile same-user desktop. Without Pillow remote bytes never reach Qt through the
 normal validated path; local theme resolution still works.
 
+Sender `image-path` hints take a separate, non-networked helper path. The wrapper
+opens once with `O_NOFOLLOW|O_NONBLOCK`, rejects non-regular files and files over
+1 MiB on that descriptor, then supplies the same descriptor as decoder stdin.
+The decoder reads at most 1 MiB + 1 and uses the raster policy above. QML receives
+only a PNG data URL capped at 131,072 characters, never the original file path.
+One decoder runs at a time; pending jobs are bounded by the live-notification cap.
+Replacement and dismissal invalidate old jobs. Sender pixels stay in memory,
+are not persisted, and rejection leaves the resolved-icon fallback available.
+
 ## Future separation
 
 An independent daemon could own D-Bus, policy and state and send only structured

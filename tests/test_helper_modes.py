@@ -194,17 +194,18 @@ class HelperModes(unittest.TestCase):
             self.assertEqual(probe.call_count, 1 if bwrap else 0)
 
     def test_actual_sandbox_failure_is_not_retried_direct(self):
-        sandbox_argv = ["/usr/bin/bwrap", "actual-helper"]
+        self.make_effect_helper()
+        effect = self.root / "failed-sandbox.json"
+        args = [str(effect), "23"]
+        sandbox_argv = self.runner.direct_command("store", args)
         with patch.object(sys, "argv", [str(ROOT / "bin/omapager-run-helper")]), \
                 patch.object(self.runner, "bubblewrap_path", return_value="/usr/bin/bwrap"), \
                 patch.object(self.runner, "probe_sandbox", return_value=True), \
                 patch.object(self.runner, "sandbox_command", return_value=sandbox_argv), \
-                patch.object(self.runner, "direct_command", side_effect=AssertionError("downgrade")), \
-                patch.object(self.runner, "run_supervised", return_value=23) as execute:
-            result = self.runner.main(["store", "restore"],
-                                      {"OMAPAGER_REQUIRE_SANDBOX": "0"})
+                stdin_bytes(b""):
+            result = self.runner.main(["store", *args], {"OMAPAGER_REQUIRE_SANDBOX": "0"})
         self.assertEqual(result, 23)
-        execute.assert_called_once_with(sandbox_argv, self.runner.clean_environment(), 45)
+        self.assertEqual(json.loads(effect.read_text())["count"], 1)
 
     def test_child_unblocks_wrapper_signals_and_cancellation_kills_descendant(self):
         child_info = self.root / "child-info"

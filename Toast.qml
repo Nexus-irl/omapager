@@ -20,6 +20,7 @@ Item {
   property real fontScale: 1
   property bool showCountdown: false
   property var row: ({})
+  property string senderImage: "" // helper-validated PNG data URL, never the sender's path
   property var place: ({ y: 0, scale: 1, opacity: 1, z: 1, front: true, hidden: false })
   // The scene that owns the clock. Everything below degrades to a still card
   // rather than breaking if it is not there.
@@ -391,7 +392,8 @@ Item {
         // this source. Nothing else: Quickshell.iconPath happily returns a
         // provider URL for an icon that does not exist, and that draws as a
         // checkerboard.
-        readonly property string sent: asUrl(card.row.image)
+        readonly property string sent: /^image:\/\/qsimage\/[0-9]+\/[0-9]+$/.test(String(card.row.image || ""))
+                                       ? String(card.row.image) : card.senderImage
         readonly property string resolved: asUrl(card.row.stored_image)
 
         // The sender's own picture wins while it works - for a message

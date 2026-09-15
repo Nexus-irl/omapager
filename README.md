@@ -65,6 +65,8 @@ by expanding Recent in the panel. The list clears when the shell restarts.
 
 **Source icons.** Use local icons or fetch missing website icons automatically.
 Set `fetchRemoteIcons` to `false` in the config to disable fetching.
+Sender-provided image files are decoded by a bounded helper and kept in memory
+for the live toast. Rejected files fall back to the resolved source icon.
 
 ## Install
 
@@ -380,8 +382,8 @@ vulnerability.
 
 - Omarchy with Quickshell 0.3.x and Hyprland.
 - Python 3 for the helpers.
-- Pillow, packaged as `python-pillow`, for remote website icons. Local theme
-  icons work without it.
+- Pillow, packaged as `python-pillow`, for remote website icons and sender-provided
+  image files. Without it, sender files fall back to local theme icons.
 - Bubblewrap, packaged as `bubblewrap`, is optional unless `requireSandbox` is on.
 - `wl-clipboard` is recommended for sensitive clipboard handling.
 - KDE Connect and its phone app are required for phone notifications and replies.
