@@ -44,6 +44,11 @@ integration stability, as the plan requires.
    discovered KDE paths, and a second match immediately before send.
    The helper preserves the explicitly selected local session-bus socket; it
    does not substitute the host session when running inside a private session.
+   Omarchy `omarchy-action` toasts may also carry `omarchy-exec-argv`. That argv
+   is re-parsed on activate, never written to history, and ignored from any
+   other app. Only tensaku-edit, tensaku, satty, swappy and omasnap run,
+   as a bare name or under /usr/bin or /usr/local/bin. Relative paths,
+   other directories and leading-dash programs fail closed. App names are claims.
 
 ## Deliberate URL compatibility restrictions
 

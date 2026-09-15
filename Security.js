@@ -53,3 +53,34 @@ function openExternalUrl(raw) {
   var safe=safeExternalUrl(raw)
   return safe ? Qt.openUrlExternally(safe) : false
 }
+
+// Omarchy screenshot toasts carry the click command as hint omarchy-exec-argv.
+// Stock omarchy.notifications runs whatever argv omarchy-action sends. App
+// names are claims (docs/THREAT_MODEL.md), so this parser allowlists the
+// screenshot editors Omarchy actually launches and rejects everything else.
+function parseOmarchyExecArgv(value) {
+  if (Array.isArray(value)) {
+    try { value = JSON.stringify(value) } catch (e) { return null }
+  }
+  var text = String(value || "")
+  if (!text || text.length > MAX_BODY) return null
+
+  var parsed
+  try { parsed = JSON.parse(text) } catch (e) { return null }
+  if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > 32) return null
+  for (var i = 0; i < parsed.length; i++) {
+    if (typeof parsed[i] !== "string" || parsed[i].length > MAX_URL) return null
+  }
+
+  var prog = parsed[0]
+  if (!prog || prog.charAt(0) === "-") return null
+  var base = prog.substring(prog.lastIndexOf("/") + 1)
+  if (!/^(?:tensaku-edit|tensaku|satty|swappy|omasnap)$/.test(base)) return null
+  if (prog.charAt(0) === "/") {
+    if (prog.indexOf("\0") >= 0 || /\/\.\.(?:\/|$)/.test(prog)) return null
+    if (prog !== "/usr/bin/" + base && prog !== "/usr/local/bin/" + base) return null
+  } else if (prog.indexOf("/") >= 0 || !/^[A-Za-z0-9._+-]+$/.test(prog)) {
+    return null
+  }
+  return parsed
+}
