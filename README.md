@@ -308,6 +308,7 @@ bin/omapager-demo                       # the everyday scenes
 bin/omapager-demo --scene interactive   # codes, links, and the sender's buttons
 bin/omapager-demo --scene routing       # where a click sends you, per source
 bin/omapager-demo --scene reply --keep --timeout 30000  # local inline-reply demo
+bin/omapager-demo --scene close         # dismiss a stack without moving the pointer
 bin/omapager-demo --replay 40           # your own notifications, re-sent
 bin/omapager-demo --list
 ```
@@ -319,6 +320,14 @@ The routing scene lists the window or URL each notification should open. The
 reply scene lets you type and send a reply without contacting a phone. It saves
 the latest reply in `~/.local/state/omarchy/omapager/reply-demo/reply.json`.
 Each run creates a new demo session, which expires after 30 minutes.
+
+`--scene close` keeps three cards on screen with live default actions. Repeatedly
+click the front close control without moving the pointer, waiting for each card
+to settle. All three should dismiss; any `default` output means a card opened
+instead.
+For the default-action check, enable `allowDefaultActionOnCardClick` in the
+lab's widget settings first; strict mode does not invoke default actions on
+card-body clicks.
 
 ## Security
 
