@@ -2078,6 +2078,8 @@ Item {
       Store.write(storeProc, storeBin, "forget-all", null)
       service.heldRows = []
       service.heldRevision += 1
+      service.historyRows = []
+      service.historyRevision += 1
       return "ok"
     }
 

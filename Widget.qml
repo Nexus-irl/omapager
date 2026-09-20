@@ -1453,7 +1453,8 @@ BarWidget {
                     font.family: "Liberation Sans"
                     font.pixelSize: Style.font.title
                     wrapMode: Text.WordWrap
-                    maximumLineCount: historyCard.expanded ? 200 : 2
+                    // Store already bounds the text; expanded cards show all of it.
+                    maximumLineCount: historyCard.expanded ? 2147483647 : 2
                     elide: historyCard.expanded ? Text.ElideNone : Text.ElideRight
                   }
                 }
