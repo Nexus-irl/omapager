@@ -528,6 +528,17 @@ BarWidget {
     globalChoosing = false
   }
 
+  // One control for both lists: Recent and History each keep their own small
+  // chevron so either can be opened alone, but there was no way to close
+  // both again except forgetting everything they held. This toggles
+  // visibility only - nothing it does touches what is stored.
+  readonly property bool allSectionsShown: recentExpanded && historyExpanded
+  function toggleAllSections() {
+    var show = !allSectionsShown
+    recentExpanded = show
+    historyExpanded = show
+  }
+
   KeyboardPanel {
     id: panel
     anchorItem: glyphs
@@ -568,6 +579,12 @@ BarWidget {
       onDeleteRequested: {
         if (!pager.settingsView && pager.cursorLive && pager.cursorAt < pager.sources.length && pager.service)
           pager.service.unsnooze(pager.sources[pager.cursorAt].key)
+      }
+      // "a" for all: one key to open Recent and History together, and the
+      // same key to close them again, rather than hunting for the two small
+      // chevrons - or reaching for Forget, which does not come back.
+      onTextKey: function(t) {
+        if (!pager.settingsView && String(t || "").toLowerCase() === "a") pager.toggleAllSections()
       }
 
       Flickable {
@@ -800,6 +817,16 @@ BarWidget {
                 // length is being chosen, which is the moment before there is.
                 // A key on a desktop where everything is coming through anyway
                 // is a control for nothing.
+                PanelActionButton {
+                  anchors.verticalCenter: parent.verticalCenter
+                  iconText: pager.allSectionsShown ? "\u{f0143}" : "\u{f0140}"   // chevron up / down
+                  tooltipText: (pager.allSectionsShown ? "Hide Recent and History (a)" : "Show Recent and History (a)")
+                  foreground: pager.panelFg
+                  fontFamily: pager.fontFamily
+                  focusable: true
+                  onClicked: pager.toggleAllSections()
+                }
+
                 PanelActionButton {
                   visible: pager.hasState || pager.globalChoosing
                   anchors.verticalCenter: parent.verticalCenter
@@ -1041,13 +1068,28 @@ BarWidget {
                 color: Style.normalFillFor(pager.panelFg, Color.accent)
                 borderSpec: Border.controlSpec("normal", pager.panelFg, Color.accent)
 
+                PanelActionButton {
+                  id: recentDelete
+                  anchors.top: parent.top
+                  anchors.right: parent.right
+                  anchors.topMargin: recentCard.contentTopInset
+                  anchors.rightMargin: recentCard.contentRightInset
+                  iconText: "✕"
+                  tooltipText: "Delete this notification"
+                  foreground: pager.panelFg
+                  hoverColor: Color.urgent
+                  fontFamily: pager.fontFamily
+                  focusable: true
+                  onClicked: if (pager.service) pager.service.forgetRecent(recentCard.modelData.key)
+                }
+
                 Column {
                   id: recentText
                   anchors.left: parent.left
                   anchors.right: parent.right
                   anchors.top: parent.top
                   anchors.leftMargin: recentCard.contentLeftInset
-                  anchors.rightMargin: recentCard.contentRightInset
+                  anchors.rightMargin: recentCard.contentRightInset + recentDelete.width + Style.spacing.xs
                   anchors.topMargin: recentCard.contentTopInset
                   spacing: Style.spacing.xs
 
@@ -1406,8 +1448,26 @@ BarWidget {
                 color: Style.normalFillFor(pager.panelFg, Color.accent)
                 borderSpec: Border.controlSpec("normal", pager.panelFg, Color.accent)
 
+                PanelActionButton {
+                  id: historyDelete
+                  anchors.top: parent.top
+                  anchors.right: parent.right
+                  anchors.topMargin: historyCard.contentTopInset
+                  anchors.rightMargin: historyCard.contentRightInset
+                  iconText: "✕"
+                  tooltipText: "Delete this notification"
+                  foreground: pager.panelFg
+                  hoverColor: Color.urgent
+                  fontFamily: pager.fontFamily
+                  focusable: true
+                  onClicked: if (pager.service) pager.service.forgetHistoryEntry(historyCard.modelData.id)
+                }
+
                 MouseArea {
-                  anchors.fill: parent
+                  anchors.left: parent.left
+                  anchors.right: historyDelete.left
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
                   cursorShape: Qt.PointingHandCursor
                   onClicked: historyCard.expanded = !historyCard.expanded
                 }
@@ -1418,7 +1478,7 @@ BarWidget {
                   anchors.right: parent.right
                   anchors.top: parent.top
                   anchors.leftMargin: historyCard.contentLeftInset
-                  anchors.rightMargin: historyCard.contentRightInset
+                  anchors.rightMargin: historyCard.contentRightInset + historyDelete.width + Style.spacing.xs
                   anchors.topMargin: historyCard.contentTopInset
                   spacing: Style.spacing.xs
 

@@ -11,6 +11,7 @@
 #   quiet-save       read the quiet state as JSON on stdin
 #   held [N]         print the newest N that were never shown, newest first
 #   forget-all       empty the history
+#   forget ID        delete one history entry (the id its listing gave it)
 #
 # Everything lives in ~/.local/state/omarchy/omapager/. It is state, not cache:
 # what you were told should survive a `rm -rf ~/.cache`. History is a log to
@@ -170,6 +171,7 @@ def cmd_close(key, why):
     entry["closed_ts"] = time.time()
     entry["closed_reason"] = why
     # Named for when it closed, so the directory sorts into reading order.
+    # The name doubles as the entry's id for `forget` - see listing().
     stamp = "%013d" % int(entry["closed_ts"] * 1000)
     if retention():
         write_json(os.path.join(HISTORY, "%s-%s.json" % (stamp, key)), sanitise(entry))
@@ -238,6 +240,11 @@ def listing(directory, limit=None, newest_first=False):
     for name in files:
         entry = read_json(os.path.join(directory, name))
         if entry is not None:
+            # The filename is what `forget` deletes by, so hand it back as
+            # the id - derived, never trusted from file content, and present
+            # even for entries written before `forget` existed.
+            if directory == HISTORY:
+                entry["id"] = name[:-len(".json")]
             out.append(entry)
     return out
 
@@ -255,6 +262,7 @@ def cmd_held(limit):
             continue
         entry = read_json(os.path.join(HISTORY, name))
         if entry is not None and entry.get("closed_reason") in HELD_REASONS:
+            entry["id"] = name[:-len(".json")]
             out.append(entry)
             if len(out) >= limit:
                 break
@@ -268,6 +276,22 @@ def cmd_forget_all():
             os.remove(os.path.join(HISTORY, name))
         except OSError:
             pass
+    return 0
+
+
+# The same shape cmd_close names a file with: a millisecond timestamp, then
+# whatever key survived safe(). Anything else is not one of our own ids.
+ENTRY_ID = re.compile(r"[0-9]{1,20}-[A-Za-z0-9_-]{1,120}")
+
+
+def cmd_forget(entry_id):
+    entry_id = str(entry_id or "")
+    if not ENTRY_ID.fullmatch(entry_id):
+        return 1
+    try:
+        os.remove(os.path.join(HISTORY, entry_id + ".json"))
+    except OSError:
+        pass
     return 0
 
 
@@ -325,6 +349,8 @@ def main():
         return cmd_held(int(args[1]) if len(args) > 1 else 60)
     if verb == "forget-all":
         return cmd_forget_all()
+    if verb == "forget":
+        return cmd_forget(args[1] if len(args) > 1 else "")
     if verb == "quiet":
         json.dump(read_quiet(), sys.stdout, separators=(",", ":"))
         return 0

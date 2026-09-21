@@ -74,6 +74,25 @@ class Storage(unittest.TestCase):
         self.assertEqual(self.run_store('policy',payload={'historyHours':0}).returncode,0)
         self.run_store('close','n1','done')
         self.assertEqual(json.loads(self.run_store('history').stdout),[])
+    def test_forget_removes_one_entry_and_rejects_bad_ids(self):
+        self.assertEqual(self.run_store('put',payload={'key':'n1','body':'one'}).returncode,0)
+        self.assertEqual(self.run_store('put',payload={'key':'n2','body':'two'}).returncode,0)
+        self.run_store('close','n1','dismissed')
+        self.run_store('close','n2','dismissed')
+        history = json.loads(self.run_store('history').stdout)
+        self.assertEqual({row['key'] for row in history}, {'n1', 'n2'})
+        target = next(row for row in history if row['key'] == 'n1')
+        other = next(row for row in history if row['key'] == 'n2')
+        self.assertEqual(self.run_store('forget', target['id']).returncode, 0)
+        remaining = json.loads(self.run_store('history').stdout)
+        self.assertEqual([row['key'] for row in remaining], ['n2'])
+        self.assertEqual(remaining[0]['id'], other['id'])
+        # Forgetting an id that is not there, or is not shaped like one, is a
+        # no-op rather than an escape hatch out of the history directory.
+        self.assertEqual(self.run_store('forget', target['id']).returncode, 0)
+        for bad in ('../../etc/passwd', '/etc/passwd', 'n2', ''):
+            self.assertNotEqual(self.run_store('forget', bad).returncode, 0)
+        self.assertEqual([row['key'] for row in json.loads(self.run_store('history').stdout)], ['n2'])
     def test_symlink_and_oversize(self):
         self.run_store('restore')
         victim=self.home/'victim';victim.write_text('untouched')
@@ -122,7 +141,10 @@ class Storage(unittest.TestCase):
                     result = self.run_store(verb)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     row = next(row for row in json.loads(result.stdout) if row['key'] == entry['key'])
-                    self.assertEqual(row, entry)
+                    # `history` hands back the id `forget` deletes this entry
+                    # by - derived from its filename, not stored on disk.
+                    want = dict(entry, id=f'{stamp}-{entry["key"]}') if verb == 'history' else entry
+                    self.assertEqual(row, want)
                 for path in (live, history):
                     self.assertEqual(json.loads(path.read_text()), entry)
                     self.assertEqual(path.stat().st_mode & 0o777, 0o600)
@@ -181,7 +203,10 @@ class Storage(unittest.TestCase):
             rows = {row['key']: row for row in json.loads(result.stdout)}
             for key, clean in expected.items():
                 with self.subTest(mode=mode, key=key):
-                    self.assertEqual(rows[key], clean)
+                    # `history` hands back the id `forget` deletes this entry
+                    # by - derived from its filename, not stored on disk.
+                    want = dict(clean, id=f'{stamp}-{key}') if mode == 'legacy-history' else clean
+                    self.assertEqual(rows[key], want)
                     name = f'{stamp}-{key}.json' if mode == 'legacy-history' else f'{key}.json'
                     path = state/('history' if mode == 'legacy-history' else 'live')/name
                     self.assertEqual(json.loads(path.read_text()), clean)

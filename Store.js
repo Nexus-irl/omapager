@@ -113,7 +113,7 @@ var RESTORE_GRACE = 20000     // 20s for a notification that outlived its sender
 // without `source`, and every notification for the rest of the session lost
 // it. Everything goes through normalise() so they all have every field.
 var SHAPE = {
-  key: "", originalId: 0, senderPid: 0, execArgv: "", app: "", appIcon: "", summary: "", body: "",
+  key: "", id: "", originalId: 0, senderPid: 0, execArgv: "", app: "", appIcon: "", summary: "", body: "",
   bodyRich: "", bodyLine: "", rawBody: "", source: "", groupKey: "", image: "",
   code: "", codes: "", link: "", meeting: false, phone: "", replyPath: "", replyTo: "",
   stored_image: "", urgency: 1, expireTimeout: 0, duration: 0, ts: 0,

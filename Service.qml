@@ -427,6 +427,14 @@ Item {
     return rows
   }
 
+  // Recent is session memory only - nothing on disk to ask the store to
+  // forget, just the row the panel should stop offering to show again.
+  function forgetRecent(key) {
+    var target = String(key || "")
+    if (!target) return
+    recentRows = recentRows.filter(function(row) { return row.key !== target })
+  }
+
   // ------------------------------------------------------- what was held
   //
   // A notification that never reached the screen is the one you most want to
@@ -479,6 +487,21 @@ Item {
         service.historyRevision += 1
       }
     }
+  }
+
+  // Deletes one persisted entry by the id its listing carried. History and
+  // Held both read the same on-disk log, so a forgotten entry is pruned from
+  // whichever of the two local copies is holding it, not just the one the
+  // panel happened to call this from - otherwise the other list would still
+  // show it until its next refresh.
+  function forgetHistoryEntry(id) {
+    var target = String(id || "")
+    if (!target) return
+    Store.write(storeProc, storeBin, "forget", null, [target])
+    historyRows = historyRows.filter(function(row) { return row.id !== target })
+    historyRevision += 1
+    heldRows = heldRows.filter(function(row) { return row.id !== target })
+    heldRevision += 1
   }
 
   // When the quiet that is holding this source began. Everything older than

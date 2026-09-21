@@ -68,6 +68,16 @@ Click a card to expand its message, then scroll to read the rest. `historyHours`
 controls retention; `0` disables disk history. Detected verification codes stay
 redacted.
 
+Each Recent or History card has its own ✕ to delete just that one - it is gone
+for good, unlike dismissing a notification on screen, which is what put it in
+these lists in the first place. Nothing else in either list is touched, so
+this is the way to clear out a couple of messages without falling back to
+"forget everything" and losing the rest.
+
+Press **a**, or the chevron beside the panel's silencing switch, to open or
+close Recent and History together, whichever state they are currently in.
+This only changes what is shown; it never deletes anything.
+
 <img src="assets/native-panel-2x.png" width="420" alt="Notification panel with recent messages from the demo scenes">
 
 **Source icons.** Use local icons or fetch missing website icons automatically.
@@ -264,6 +274,19 @@ Omarchy's existing comma-key shortcuts work without configuration:
 | `SUPER` `SHIFT` `ALT` `,` | put the last few back on screen |
 
 Omarchy screenshot toasts carry `omarchy-exec-argv`. Click and Super+Alt+, run that editor.
+
+### In the panel
+
+These act on the snoozed-sources list; the cursor only moves onto a row with
+Up/Down or `j`/`k`, so nothing here fires from a stray keypress elsewhere.
+
+| | |
+| --- | --- |
+| `↑` `↓` / `j` `k` | move the cursor between snoozed sources |
+| `Enter` / `Space` | expand or collapse the cursor row's held messages |
+| `x` | resume notifications from the cursor row's source |
+| `a` | show or hide Recent and History together |
+| `Esc` | close the panel |
 
 ### Optional bindings
 
