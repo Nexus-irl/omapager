@@ -413,4 +413,4 @@ and the [development guide](docs/DEVELOPING.md) for working on omapager.
 
 ## Licence
 
-Apache-2.0.
+MIT. See [LICENSE](LICENSE).
