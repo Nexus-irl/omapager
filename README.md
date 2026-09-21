@@ -305,6 +305,11 @@ o.bind("SUPER + CTRL + ALT + comma", "Snooze all notifications for an hour",
 -- Toggle the notification panel.
 o.bind("SUPER + CTRL + SHIFT + comma", "Notification options",
        "omarchy-shell omapager.panel toggle")
+
+-- Show/hide the on-screen banners, all of them, without dismissing any.
+-- Everything keeps counting down underneath while hidden.
+o.bind("SUPER + B", "Show/hide banner notifications",
+       "omarchy-shell omapager hide")
 ```
 
 ## Scripting
@@ -314,6 +319,7 @@ omarchy-shell omapager count            how many are on screen
 omarchy-shell omapager clear            dismiss them
 omarchy-shell omapager dnd              toggle Do Not Disturb
 omarchy-shell omapager expand           open the deck, as hovering would
+omarchy-shell omapager hide             show/hide every banner without dismissing them
 omarchy-shell omapager offer code       take the front card's offer (code|link|phone)
 omarchy-shell omapager act reply        invoke one of the sender's actions
 omarchy-shell omapager reply "text"     answer the front card ("" opens the field)

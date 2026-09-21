@@ -825,6 +825,12 @@ Item {
   property bool pointerIn: false
   property bool expanded: false
   property string openDeck: ""
+  // A blackout, not a dismissal: every card, timer and countdown keeps
+  // running exactly as if nothing had changed, only the surface stops being
+  // drawn and stops taking input. Toggling it back off shows precisely what
+  // would be there had it never been hidden - nothing is marked read, closed
+  // or persisted by this.
+  property bool bannersHidden: false
   property string hoverKey: ""     // the card under the pointer, when open
   property real hoverX: -1         // where it is, in the deck's coordinates
   property real hoverY: -1
@@ -1909,6 +1915,7 @@ Item {
     function probe(): string {
       return JSON.stringify({fontScale: service.fontScale, toasts: toasts.count,
         doNotDisturb: service.doNotDisturb, expanded: service.expanded,
+        bannersHidden: service.bannersHidden,
         hasWlCopy: service.hasWlCopy, security: service.sandboxStatus,
         fetchRemoteIcons: service.fetchIcons,
         allowDefaultActionOnCardClick: service.allowDefaultActionOnCardClick,
@@ -1944,6 +1951,15 @@ Item {
         service.pointerEntered(undefined)
       }
       return service.expanded ? "expanded" : "collapsed"
+    }
+    // A blackout for the whole deck, every source at once - distinct from
+    // `expand`, which only ever unstacks cards that are already on screen.
+    // Nothing here closes, dismisses or forgets a single card: everything
+    // keeps counting down underneath, and toggling this back off draws
+    // exactly what would be there had it never been hidden.
+    function hide(): string {
+      service.bannersHidden = !service.bannersHidden
+      return service.bannersHidden ? "hidden" : "shown"
     }
     // Snooze the front card's source, or any source by key. Minutes, because
     // that is how anyone says it out loud.
@@ -2155,7 +2171,8 @@ Item {
       id: surface
       required property var modelData
       screen: modelData
-      readonly property bool showingNotifications: service.displayMode === "all" || modelData.name === service.targetDisplayName
+      readonly property bool showingNotifications: !service.bannersHidden
+                                   && (service.displayMode === "all" || modelData.name === service.targetDisplayName)
       // Always mapped, even with nothing to draw. It used to appear with the
       // first notification and vanish with the last, and a layer surface
       // coming and going makes the compositor re-evaluate focus each time -
